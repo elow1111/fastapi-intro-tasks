@@ -2,37 +2,46 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List
 
-
 app = FastAPI()
 
 # Временная база данных
 product_list = []
 product_id_counter = 1
 
-# BEGIN (write your solution here)
-class ProductSpecifications(BaseModel):
-    size: str
-    color: str
-    material: str
+# Модель характеристик продукта
+class Specifications(BaseModel):
+    size: str = Field(..., description="Размер продукта (например, 'M', 'L', 'XL')")
+    color: str = Field(..., description="Цвет продукта (например, 'red', 'blue')")
+    material: str = Field(..., description="Материал продукта (например, 'cotton', 'leather')")
 
-class ProductBase(BaseModel):
-    name: str
-    price: float = Field(..., gt=0)
-    specifications: ProductSpecifications
+# Модель продукта
+class Product(BaseModel):
+    name: str = Field(..., description="Название продукта")
+    price: float = Field(..., gt=0, description="Цена продукта (должна быть больше 0)")
+    specifications: Specifications = Field(..., description="Характеристики продукта")
 
-class ProductInDB(ProductBase):
+# Ответ при получении всех продуктов
+class ProductDetailResponse(BaseModel):
     id: int
+    name: str
+    price: float
+    specifications: Specifications
 
-@app.post("/product", response_model=ProductInDB)
-async def create_product(product: ProductBase):
+@app.get("/products", response_model=dict)
+async def get_products() -> dict:
+    """
+    Возвращает список всех продуктов в базе данных.
+    """
+    return {"products":product_list}
+
+@app.post("/product", status_code=200)
+async def add_product(data: Product):
+    """
+    Добавляет новый продукт в базу данных.
+    """
     global product_id_counter
-    product_data = product.dict()
-    product_data["id"] = product_id_counter
-    product_list[product_id_counter] = product_data
+    new_product = data.dict()
+    new_product["id"] = product_id_counter
     product_id_counter += 1
-    return product_data
-
-@app.get("/products", response_model=List[ProductInDB])
-async def get_products():
-    return list(product_list.values())
-# END
+    product_list.append(new_product)
+    return {"message": "Product added successfully", "product": new_product}
