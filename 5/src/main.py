@@ -4,17 +4,13 @@ from typing import Optional
 app = FastAPI()
 
 # BEGIN (write your solution here)
-class User(BaseModel):
-    username: str
-    email: str
-    age: Optional[int] = None
-
-@app.post("/users")
-async def create_user(user: User):
-    return {
-        "username": user.username,
-        "email": user.email,
-        "age": user.age,
-        "status": "User created"
+@app.post("/users", status_code=200)
+async def create_task(username:str = Body(...), email:str = Body(...), age:Optional[int] = Body(None)):
+    new_user = {
+        "username": username,
+        "email": email,
+        "age": age
     }
+    new_user["status"] = "User created"
+    return new_user
 # END
