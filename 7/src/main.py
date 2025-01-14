@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -8,25 +8,28 @@ app = FastAPI()
 product_list = []
 product_id_counter = 1
 
-# BEGIN (write your solution here)
-class ProductBase(BaseModel):
-    name: str
+# Модель данных продукта
+class Product(BaseModel):
+    name: str = Field(..., description="Название продукта")
     price: float = Field(..., gt=0)
     quantity: int = Field(..., ge=0)
+    
 
-class ProductInDB(ProductBase):
-    id: int
+@app.get("/products", response_model=dict)
+async def get_products() -> dict:
+    """
+    Возвращает список всех продуктов в базе данных.
+    """
+    return {"products": product_list}  # Возвращаем сам список
 
-@app.post("/product", response_model=ProductInDB)
-async def create_product(product: ProductBase):
+@app.post("/product")
+async def add_product(data: Product):
+    """
+    Добавляет новый продукт в базу данных.
+    """
     global product_id_counter
-    product_data = product.dict()
-    product_data["id"] = product_id_counter
-    product_list.append(product_data)
+    new_product = data.model_dump()  # Используем model_dump
+    new_product["id"] = product_id_counter
     product_id_counter += 1
-    return product_data
-
-@app.get("/products", response_model=List[ProductInDB])
-async def get_products():
-    return product_list
-# END
+    product_list.append(new_product)
+    return {"product": new_product, "message": "Product added successfully"}
